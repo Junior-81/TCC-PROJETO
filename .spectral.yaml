@@ -1,0 +1,74 @@
+# ============================================================================
+# TCC: Policy-as-Code para Governança de APIs (Spectral)
+# Propósito: Garantir que o contrato OpenAPI respeite padrões de segurança,
+# nomenclatura e documentação ANTES do código ser escrito.
+# ============================================================================
+# TESE: A governança automatizada impede que APIs sejam publicadas com:
+# - Dados sensíveis em URLs (LGPD)
+# - Respostas mal documentadas (Manutenibilidade)
+# - Falta de tratamento de erros (Confiabilidade)
+# ============================================================================
+
+extends: [[spectral:oas, all]]
+
+rules:
+  # ---------------------------------------------------------------------------
+  # REGRA 1: LGPD - Proibir dados sensíveis em path parameters
+  # TCC Note: CPF, RG, e-mail NÃO podem ser enviados via URL (logs, histórico)
+  # ---------------------------------------------------------------------------
+  no-sensitive-data-in-path:
+    description: "Dados sensíveis (CPF, e-mail, RG) NÃO podem estar em path parameters (conformidade LGPD Art. 46)"
+    severity: error
+    given: "$.paths..parameters[?(@.in == 'path')]"
+    then:
+      field: name
+      function: pattern
+      functionOptions:
+        notMatch: "/^(cpf|email|rg|senha|password)$/i"
+
+  # ---------------------------------------------------------------------------
+  # REGRA 2: Nomenclatura - Todas as chaves JSON devem usar camelCase
+  # TCC Note: Padronização crítica para consumo por aplicações JavaScript/React
+  # ---------------------------------------------------------------------------
+  response-keys-camelcase:
+    description: "Todas as propriedades de resposta devem usar camelCase (ex: totalConsultas, não total_consultas)"
+    severity: warn
+    given: "$.paths..responses..content..schema..properties.*~"
+    then:
+      function: pattern
+      functionOptions:
+        match: "^[a-z][a-zA-Z0-9]*$"
+
+  # ---------------------------------------------------------------------------
+  # REGRA 3: Confiabilidade - Todo endpoint DEVE documentar erro 500
+  # TCC Note: Essencial para resiliência em ambientes corporativos críticos
+  # ---------------------------------------------------------------------------
+  require-500-response:
+    description: "Todo endpoint DEVE documentar o comportamento em caso de erro interno (HTTP 500)"
+    severity: error
+    given: "$.paths[*][get,post,put,delete,patch]"
+    then:
+      field: responses
+      function: truthy
+      functionOptions:
+        properties:
+          - "500"
+
+  # ---------------------------------------------------------------------------
+  # REGRA 4: Segurança - APIs devem declarar esquema de autenticação
+  # TCC Note: Mesmo em MVP, indicar future-proofing para autenticação JWT/OAuth
+  # ---------------------------------------------------------------------------
+  require-security-scheme:
+    description: "A API deve declarar pelo menos um esquema de segurança (mesmo que não implementado no MVP)"
+    severity: warn
+    given: "$"
+    then:
+      field: components.securitySchemes
+      function: truthy
+
+# ============================================================================
+# Como usar:
+# 1. Instalar: npm install -g @stoplight/spectral-cli
+# 2. Validar contrato: spectral lint swagger.yaml
+# 3. O build da API Node.js DEVE executar este lint e falhar se houver errors
+# ============================================================================

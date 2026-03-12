@@ -1,0 +1,300 @@
+openapi: 3.0.3
+
+# ============================================================================
+# TCC: Contrato OpenAPI - Design First
+# Propósito: Definir o contrato da API ANTES de implementar o código
+# Este arquivo será validado pelo Spectral (.spectral.yaml) antes do deploy
+# ============================================================================
+
+info:
+  title: API Clínica Médica - Plataforma Governada
+  version: 1.0.0
+  description: |
+    **TCC: Engenharia de Plataforma para Sistemas Médicos Legados**
+    
+    Esta API demonstra como uma camada de plataforma pode:
+    - Desacoplar aplicações modernas de bancos de dados legados
+    - Garantir conformidade com LGPD mascarando dados sensíveis
+    - Padronizar contratos através de governança automatizada (Spectral)
+    
+    ## Endpoints Estratégicos
+    - `GET /faturamento/resumo` - Consome Stored Procedure complexa do PostgreSQL
+    - `GET /pacientes/{id}` - Mascara CPF antes de retornar ao Frontend
+    
+  contact:
+    name: Autor do TCC
+    email: seu.email@academico.com
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Servidor de Desenvolvimento
+
+# ============================================================================
+# REGRA SPECTRAL: require-security-scheme
+# Declaramos autenticação bearer JWT (mesmo sem implementar no MVP)
+# ============================================================================
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        **[MVP - Não Implementado]**
+        Em produção, este endpoint exigiria token JWT com claims de autorização.
+        
+  schemas:
+    # -------------------------------------------------------------------------
+    # Schema: Resumo de Faturamento (retorno da Stored Procedure)
+    # TCC Note: Todas as chaves em camelCase (REGRA SPECTRAL 2)
+    # -------------------------------------------------------------------------
+    ResumoFaturamento:
+      type: object
+      properties:
+        totalConsultas:
+          type: integer
+          format: int64
+          description: Quantidade total de consultas no período
+          example: 6
+        totalFaturado:
+          type: number
+          format: decimal
+          description: Valor total faturado (em reais)
+          example: 2560.00
+        totalRessarcido:
+          type: number
+          format: decimal
+          description: Valor total ressarcido pelos convênios
+          example: 150.00
+        totalPendente:
+          type: number
+          format: decimal
+          description: Valor total ainda não pago
+          example: 1030.00
+        consultasPorConvenio:
+          type: array
+          items:
+            type: object
+            properties:
+              convenioId:
+                type: integer
+                description: ID do convênio (0 = Particular)
+                example: 1
+              quantidade:
+                type: integer
+                description: Quantidade de consultas deste convênio
+                example: 3
+              valorTotal:
+                type: number
+                format: decimal
+                description: Valor total deste convênio
+                example: 1030.00
+
+    # -------------------------------------------------------------------------
+    # Schema: Paciente (com CPF mascarado pela camada de Plataforma)
+    # TCC Note: O CPF é mascarado no backend, nunca exposto ao frontend
+    # -------------------------------------------------------------------------
+    Paciente:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        nomeCompleto:
+          type: string
+          example: Maria Silva Santos
+        cpfMascarado:
+          type: string
+          description: CPF com mascaramento LGPD (formato XXX.XXX.XXX-XX)
+          example: "***.***.***-01"
+          pattern: '^\*\*\*\.\*\*\*\.\*\*\*-\d{2}$'
+        dataNascimento:
+          type: string
+          format: date
+          example: "1985-03-15"
+        telefone:
+          type: string
+          example: "11987654321"
+        email:
+          type: string
+          format: email
+          example: maria.silva@email.com
+        convenioId:
+          type: integer
+          nullable: true
+          description: ID do convênio (null = Particular)
+          example: 1
+        totalConsultas:
+          type: integer
+          description: Total de consultas realizadas
+          example: 2
+        totalGasto:
+          type: number
+          format: decimal
+          description: Valor total gasto pelo paciente
+          example: 650.00
+
+    # -------------------------------------------------------------------------
+    # Schema: Erro Padrão (usado em todas as respostas de erro)
+    # -------------------------------------------------------------------------
+    Erro:
+      type: object
+      properties:
+        erro:
+          type: string
+          description: Mensagem de erro humanizada
+          example: Paciente não encontrado
+        codigo:
+          type: string
+          description: Código de erro identificador
+          example: PACIENTE_NAO_ENCONTRADO
+        timestamp:
+          type: string
+          format: date-time
+          description: Momento em que o erro ocorreu
+          example: "2026-03-11T10:30:00.000Z"
+
+# ============================================================================
+# ENDPOINTS DA API
+# ============================================================================
+paths:
+  # ---------------------------------------------------------------------------
+  # ENDPOINT 1: Resumo de Faturamento (Desacoplamento de Stored Procedure)
+  # ---------------------------------------------------------------------------
+  /faturamento/resumo:
+    get:
+      summary: Obter resumo consolidado de faturamento
+      description: |
+        **TCC: Demonstração de Desacoplamento**
+        
+        Este endpoint consome uma Stored Procedure complexa do PostgreSQL
+        (`gerar_resumo_faturamento`) sem expor a estrutura interna do banco.
+        
+        A Procedure:
+        - Cruza 4 tabelas (pacientes, consultas, medicos, eventos_faturamento)
+        - Aplica regras de franquia de convênio
+        - Calcula ressarcimentos e valores pendentes
+        
+        A API atua como uma **blindagem** entre o legado e as aplicações modernas.
+        
+      tags:
+        - Faturamento
+      parameters:
+        - name: mes
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+          description: Mês de referência (1-12)
+          example: 2
+        - name: ano
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 2020
+            maximum: 2030
+          description: Ano de referência
+          example: 2025
+          
+      responses:
+        '200':
+          description: Resumo de faturamento gerado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumoFaturamento'
+                
+        '400':
+          description: Parâmetros inválidos (mês/ano fora do range)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+              example:
+                erro: "Mês deve estar entre 1 e 12"
+                codigo: "PARAMETRO_INVALIDO"
+                timestamp: "2026-03-11T10:30:00.000Z"
+                
+        '500':
+          description: Erro interno ao processar a Stored Procedure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+              example:
+                erro: "Erro ao processar faturamento no banco de dados"
+                codigo: "ERRO_BANCO_DADOS"
+                timestamp: "2026-03-11T10:30:00.000Z"
+
+  # ---------------------------------------------------------------------------
+  # ENDPOINT 2: Detalhes de Paciente (Conformidade LGPD - CPF Mascarado)
+  # ---------------------------------------------------------------------------
+  /pacientes/{id}:
+    get:
+      summary: Obter detalhes de um paciente específico
+      description: |
+        **TCC: Demonstração de Conformidade LGPD**
+        
+        Este endpoint busca os dados de um paciente na view `vw_paciente_detalhado`
+        do PostgreSQL, mas a **camada de Plataforma** mascara o CPF antes de
+        retornar a resposta ao Frontend.
+        
+        **Mascaramento aplicado:**
+        - CPF original: `12345678901`
+        - CPF retornado: `***.***.***-01`
+        
+        Isso garante que dados sensíveis (Art. 5º, II da LGPD) não trafeguem
+        desnecessariamente para aplicações de UI.
+        
+      tags:
+        - Pacientes
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID do paciente
+          example: 1
+          
+      responses:
+        '200':
+          description: Detalhes do paciente (com CPF mascarado)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Paciente'
+                
+        '404':
+          description: Paciente não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+              example:
+                erro: "Paciente com ID 999 não encontrado"
+                codigo: "PACIENTE_NAO_ENCONTRADO"
+                timestamp: "2026-03-11T10:30:00.000Z"
+                
+        '500':
+          description: Erro interno ao buscar paciente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+              example:
+                erro: "Erro ao consultar banco de dados"
+                codigo: "ERRO_BANCO_DADOS"
+                timestamp: "2026-03-11T10:30:00.000Z"
+
+# ============================================================================
+# TAGS (Organização da documentação)
+# ============================================================================
+tags:
+  - name: Faturamento
+    description: Operações financeiras (encapsulam Stored Procedures legadas)
+  - name: Pacientes
+    description: Gestão de pacientes (com conformidade LGPD)
