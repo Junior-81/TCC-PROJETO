@@ -18,13 +18,13 @@ export default function PacientePage() {
     setError(null);
     
     try {
-      console.log(`🔍 TCC: Buscando paciente ID ${pacienteId}...`);
+      console.log(` Buscando paciente ID ${pacienteId}...`);
       const dados = await obterPacientePorId(pacienteId);
       setPaciente(dados);
-      console.log('✅ TCC: Paciente carregado com sucesso!', dados);
-      console.log(`🔒 TCC: CPF mascarado recebido: ${dados.cpfMascarado}`);
+      console.log(' Paciente carregado com sucesso!', dados);
+      console.log(`CPF mascarado recebido: ${dados.cpfMascarado}`);
     } catch (err: any) {
-      console.error('❌ TCC: Erro ao buscar paciente:', err);
+      console.error(' Erro ao buscar paciente:', err);
       setError(err.response?.data?.erro || 'Erro ao buscar paciente');
     } finally {
       setLoading(false);
@@ -36,7 +36,7 @@ export default function PacientePage() {
       <h1>👤 Detalhes do Paciente</h1>
       
       <div className="tcc-note lgpd">
-        <strong>🔒 TCC: Demonstração de Conformidade LGPD</strong>
+        <strong>Demonstração de Conformidade LGPD</strong>
         <p>
           Este componente consome um endpoint que retorna dados de paciente
           com o <strong>CPF JÁ MASCARADO</strong> pela camada de Plataforma.
@@ -90,7 +90,7 @@ export default function PacientePage() {
 
             <div className="info-row lgpd-highlight">
               <span className="info-label">
-                🔒 CPF (Mascarado - LGPD):
+                 CPF (Mascarado - LGPD):
               </span>
               <span className="info-value cpf-masked">
                 {paciente.cpfMascarado}
@@ -135,7 +135,7 @@ export default function PacientePage() {
           </div>
 
           <div className="lgpd-note">
-            <strong>✅ Conformidade Garantida:</strong>
+            <strong> Conformidade Garantida:</strong>
             <p>
               O CPF exibido acima foi mascarado pela camada de Plataforma
               antes de chegar a este componente. Verifique o console do navegador

@@ -19,12 +19,12 @@ export default function Faturamento() {
     setError(null);
     
     try {
-      console.log(`📊 TCC: Buscando resumo de faturamento para ${mes}/${ano}...`);
+      console.log(` Buscando resumo de faturamento para ${mes}/${ano}...`);
       const dados = await obterResumoFaturamento(mes, ano);
       setResumo(dados);
-      console.log('✅ TCC: Resumo carregado com sucesso!', dados);
+      console.log(' Resumo carregado com sucesso!', dados);
     } catch (err: any) {
-      console.error('❌ TCC: Erro ao buscar resumo:', err);
+      console.error(' Erro ao buscar resumo:', err);
       setError(err.response?.data?.erro || 'Erro ao buscar resumo de faturamento');
     } finally {
       setLoading(false);
@@ -33,10 +33,10 @@ export default function Faturamento() {
 
   return (
     <div className="page">
-      <h1>📊 Resumo de Faturamento</h1>
+      <h1> Resumo de Faturamento</h1>
       
       <div className="tcc-note">
-        <strong>🎓 TCC: Demonstração de Desacoplamento</strong>
+        <strong>Demonstração de Desacoplamento</strong>
         <p>
           Este componente consome um endpoint REST moderno que ENCAPSULA uma
           Stored Procedure complexa do PostgreSQL (cruza 4 tabelas, calcula
@@ -111,7 +111,7 @@ export default function Faturamento() {
             </div>
           </div>
 
-          <h3>📋 Por Convênio</h3>
+          <h3> Por Convênio</h3>
           <table>
             <thead>
               <tr>
