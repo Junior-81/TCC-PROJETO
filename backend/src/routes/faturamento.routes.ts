@@ -5,6 +5,9 @@
 
 import { Router } from 'express';
 import { getResumoFaturamento } from '../controllers/faturamento.controller';
+import { authenticateJWT, authorizeRoles } from '../middlewares/auth';
+import { validate } from '../middlewares/validate';
+import { faturamentoQuerySchema } from '../schemas/faturamento.schema';
 
 const router = Router();
 
@@ -21,6 +24,12 @@ const router = Router();
  * 
  * Exemplo: GET /api/v1/faturamento/resumo?mes=2&ano=2025
  */
-router.get('/resumo', getResumoFaturamento);
+router.get(
+	'/resumo',
+	authenticateJWT,
+	authorizeRoles(['admin']),
+	validate({ query: faturamentoQuerySchema }),
+	getResumoFaturamento
+);
 
 export default router;

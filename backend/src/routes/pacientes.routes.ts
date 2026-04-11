@@ -5,6 +5,9 @@
 
 import { Router } from 'express';
 import { getPacientePorId } from '../controllers/pacientes.controller';
+import { authenticateJWT, authorizeRoles } from '../middlewares/auth';
+import { validate } from '../middlewares/validate';
+import { pacienteParamsSchema } from '../schemas/pacientes.schema';
 
 const router = Router();
 
@@ -23,6 +26,12 @@ const router = Router();
  * 
  * Exemplo: GET /api/v1/pacientes/1
  */
-router.get('/:id', getPacientePorId);
+router.get(
+	'/:id',
+	authenticateJWT,
+	authorizeRoles(['admin', 'user']),
+	validate({ params: pacienteParamsSchema }),
+	getPacientePorId
+);
 
 export default router;

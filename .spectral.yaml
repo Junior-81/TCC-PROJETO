@@ -46,13 +46,10 @@ rules:
   require-500-response:
     description: "Todo endpoint DEVE documentar o comportamento em caso de erro interno (HTTP 500)"
     severity: error
-    given: "$.paths[*][get,post,put,delete,patch]"
+    given: "$.paths[*][get,post,put,delete,patch].responses"
     then:
-      field: responses
+      field: "500"
       function: truthy
-      functionOptions:
-        properties:
-          - "500"
 
   # ---------------------------------------------------------------------------
   # REGRA 4: Segurança - APIs devem declarar esquema de autenticação

@@ -26,7 +26,7 @@ export const maskCPF = (cpf: string): string => {
   const lastTwoDigits = cpf.slice(-2);
   
   // TCC Note: Formato padrão brasileiro: XXX.XXX.XXX-YY
-  return `***.***.***.${lastTwoDigits}`;
+  return `***.***.***-${lastTwoDigits}`;
 };
 
 /**

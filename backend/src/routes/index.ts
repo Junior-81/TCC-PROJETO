@@ -4,6 +4,7 @@
 // ============================================================================
 
 import { Router } from 'express';
+import authRoutes from './auth.routes';
 import faturamentoRoutes from './faturamento.routes';
 import pacientesRoutes from './pacientes.routes';
 
@@ -20,6 +21,8 @@ const router = Router();
  * - /api/v1/faturamento/resumo
  * - /api/v1/pacientes/:id
  */
+
+router.use('/auth', authRoutes);
 
 // TCC Note: Módulo de Faturamento (demonstra desacoplamento de Stored Procedure)
 router.use('/faturamento', faturamentoRoutes);

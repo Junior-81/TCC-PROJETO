@@ -4,19 +4,34 @@
 // ============================================================================
 
 import { Request, Response, NextFunction } from 'express';
+import { randomUUID } from 'crypto';
 
 // TCC Note: Interface para erros personalizados da aplicação
 export class AppError extends Error {
   statusCode: number;
+  code: string;
   codigo: string;
 
-  constructor(message: string, statusCode: number, codigo: string) {
+  constructor(message: string, statusCode: number, code: string) {
     super(message);
     this.statusCode = statusCode;
-    this.codigo = codigo;
+    this.code = code;
+    this.codigo = code;
     Error.captureStackTrace(this, this.constructor);
   }
 }
+
+const mapStatusToCode = (statusCode: number): string => {
+  const statusCodeMap: Record<number, string> = {
+    400: 'BAD_REQUEST',
+    401: 'UNAUTHORIZED',
+    403: 'FORBIDDEN',
+    404: 'NOT_FOUND',
+    500: 'INTERNAL_SERVER_ERROR'
+  };
+
+  return statusCodeMap[statusCode] || 'INTERNAL_SERVER_ERROR';
+};
 
 /**
  * TCC Note: Middleware global de tratamento de erros
@@ -31,18 +46,21 @@ export const errorHandler = (
   err: Error | AppError,
   req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ): void => {
   // TCC Note: Valores padrão para erros não tratados
   let statusCode = 500;
-  let codigo = 'ERRO_INTERNO';
+  let code = mapStatusToCode(500);
   let message = 'Erro interno do servidor';
+  const traceId = randomUUID();
 
   // TCC Note: Se for um erro customizado (AppError), usar seus valores
   if (err instanceof AppError) {
     statusCode = err.statusCode;
-    codigo = err.codigo;
+    code = err.code || err.codigo || mapStatusToCode(err.statusCode);
     message = err.message;
+  } else {
+    code = mapStatusToCode(statusCode);
   }
 
   // TCC Note: Log do erro para debugging (em produção, usar ferramenta de APM)
@@ -51,13 +69,14 @@ export const errorHandler = (
     stack: err.stack,
     url: req.originalUrl,
     method: req.method,
+    traceId,
     timestamp: new Date().toISOString()
   });
 
-  // TCC Note: Resposta padronizada conforme schema "Erro" do swagger.yaml
+  // TCC Note: Resposta padronizada para facilitar observabilidade e integração
   res.status(statusCode).json({
-    erro: message,
-    codigo: codigo,
-    timestamp: new Date().toISOString()
+    code,
+    message,
+    traceId
   });
 };

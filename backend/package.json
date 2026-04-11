@@ -5,10 +5,10 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-    "build": "tsc",
+    "build": "npm run lint:spectral && tsc",
     "start": "node dist/index.js",
-    "lint:spectral": "spectral lint swagger.yaml",
-    "test": "echo \"TCC: Testes serão implementados em fase posterior\" && exit 0"
+    "lint:spectral": "spectral lint ../swagger.yaml --ruleset ../.spectral.yaml",
+    "test": "jest --runInBand"
   },
   "keywords": [
     "tcc",
@@ -20,19 +20,25 @@
   "author": "Seu Nome",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2",
-    "pg": "^8.11.3",
-    "dotenv": "^16.3.1",
     "cors": "^2.8.5",
-    "helmet": "^7.1.0"
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.11.3",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@stoplight/spectral-cli": "^6.11.0",
+    "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
+    "@types/jest": "^30.0.0",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20.10.5",
     "@types/pg": "^8.10.9",
-    "@types/cors": "^2.8.17",
-    "typescript": "^5.3.3",
+    "jest": "^30.3.0",
+    "ts-jest": "^29.4.6",
     "ts-node-dev": "^2.0.0",
-    "@stoplight/spectral-cli": "^6.11.0"
+    "typescript": "^5.3.3"
   }
 }

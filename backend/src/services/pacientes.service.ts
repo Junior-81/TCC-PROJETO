@@ -3,21 +3,8 @@
 // Propósito: Buscar dados do paciente e MASCARAR o CPF antes de retornar
 // ============================================================================
 
-import pool from '../config/database';
 import { maskCPF } from '../utils/cpfMask';
-
-// TCC Note: Interface do paciente como vem do banco (com CPF exposto)
-interface PacienteRaw {
-  id: number;
-  nome_completo: string;
-  cpf: string; // TCC: Exposto no banco, será mascarado aqui!
-  data_nascimento: string;
-  telefone: string | null;
-  email: string | null;
-  convenio_id: number | null;
-  total_consultas: number;
-  total_gasto: number;
-}
+import { buscarPacientePorId } from '../repositories/pacientes.repository';
 
 // TCC Note: Interface do paciente como será retornado ao Frontend (CPF mascarado)
 export interface PacienteSeguro {
@@ -48,15 +35,11 @@ export interface PacienteSeguro {
  */
 export const obterPacientePorId = async (id: number): Promise<PacienteSeguro> => {
   try {
-    // TCC Note: Consulta a view que agrega dados do paciente
-    const query = 'SELECT * FROM vw_paciente_detalhado WHERE id = $1';
-    const result = await pool.query<PacienteRaw>(query, [id]);
+    const paciente = await buscarPacientePorId(id);
 
-    if (result.rows.length === 0) {
+    if (!paciente) {
       throw new Error(`Paciente com ID ${id} não encontrado`);
     }
-
-    const paciente = result.rows[0];
 
     // TCC Note: PONTO CRÍTICO - O mascaramento ocorre AQUI, na camada de Plataforma
     // O CPF nunca chega ao Frontend em formato completo
