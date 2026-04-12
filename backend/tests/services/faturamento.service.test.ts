@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { obterResumoFaturamento } from '../../src/services/faturamento.service';
 import { buscarResumoFaturamento } from '../../src/repositories/faturamento.repository';
 

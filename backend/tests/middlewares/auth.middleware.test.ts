@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
+import { describe, expect, it, jest } from '@jest/globals';
 import jwt from 'jsonwebtoken';
 import { authenticateJWT, authorizeRoles } from '../../src/middlewares/auth';
 import { AppError } from '../../src/middlewares/errorHandler';
