@@ -7,9 +7,10 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
+import { v4 as uuidv4 } from 'uuid';
 import routes from './routes';
 import { errorHandler } from './middlewares/errorHandler';
-import { testDatabaseConnection } from './config/database';
+import pool, { testDatabaseConnection } from './config/database';
 
 // TCC Note: Carrega variáveis de ambiente do arquivo .env
 dotenv.config();
@@ -44,6 +45,19 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime()
   });
+});
+
+app.get('/ready', async (req, res) => {
+  try {
+    await pool.query('SELECT 1');
+    res.json({ status: 'ready', timestamp: new Date().toISOString() });
+  } catch (error) {
+    res.status(503).json({
+      code: 'DATABASE_UNAVAILABLE',
+      message: 'Banco de dados indisponível',
+      traceId: uuidv4()
+    });
+  }
 });
 
 // TCC Note: Todas as rotas de negócio estão prefixadas com /api/v1

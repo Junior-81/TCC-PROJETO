@@ -6,6 +6,7 @@
 import { Router } from 'express';
 import faturamentoRoutes from './faturamento.routes';
 import pacientesRoutes from './pacientes.routes';
+import authRoutes from './auth.routes';
 
 const router = Router();
 
@@ -26,5 +27,8 @@ router.use('/faturamento', faturamentoRoutes);
 
 // TCC Note: Módulo de Pacientes (demonstra conformidade LGPD)
 router.use('/pacientes', pacientesRoutes);
+
+// TCC Note: Módulo de Autenticação JWT
+router.use('/auth', authRoutes);
 
 export default router;

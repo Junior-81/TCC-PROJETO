@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+
+jobs:
+  backend-ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies (backend)
+        working-directory: backend
+        run: npm ci
+
+      - name: Lint OpenAPI with Spectral (backend)
+        working-directory: backend
+        run: npm run lint:spectral
+
+      - name: Run tests (backend)
+        working-directory: backend
+        run: npm test
+
+      - name: Build (backend)
+        working-directory: backend
+        run: npm run build

@@ -140,24 +140,77 @@ components:
     Erro:
       type: object
       properties:
-        erro:
+        code:
           type: string
-          description: Mensagem de erro humanizada
+          description: Código padronizado do erro
+          example: NOT_FOUND
+        message:
+          type: string
+          description: Mensagem de erro
           example: Paciente não encontrado
-        codigo:
+        traceId:
           type: string
-          description: Código de erro identificador
-          example: PACIENTE_NAO_ENCONTRADO
-        timestamp:
-          type: string
-          format: date-time
-          description: Momento em que o erro ocorreu
-          example: "2026-03-11T10:30:00.000Z"
+          description: Identificador único para rastreio da falha
+          example: "57ec3e90-a0f8-4b16-91c0-4d3f89f8b53b"
 
 # ============================================================================
 # ENDPOINTS DA API
 # ============================================================================
 paths:
+  /auth/login:
+    post:
+      summary: Autenticar usuário e obter token JWT
+      tags:
+        - Autenticação
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+              required:
+                - username
+                - password
+      responses:
+        '200':
+          description: Token JWT gerado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                  tokenType:
+                    type: string
+                    example: Bearer
+                  expiresIn:
+                    type: integer
+                    example: 3600
+                  role:
+                    type: string
+                    enum:
+                      - admin
+                      - user
+        '401':
+          description: Credenciais inválidas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+
+        '500':
+          description: Erro interno na autenticação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+
   # ---------------------------------------------------------------------------
   # ENDPOINT 1: Resumo de Faturamento (Desacoplamento de Stored Procedure)
   # ---------------------------------------------------------------------------
@@ -179,6 +232,8 @@ paths:
         
       tags:
         - Faturamento
+      security:
+        - bearerAuth: []
       parameters:
         - name: mes
           in: query
@@ -214,9 +269,31 @@ paths:
               schema:
                 $ref: '#/components/schemas/Erro'
               example:
-                erro: "Mês deve estar entre 1 e 12"
-                codigo: "PARAMETRO_INVALIDO"
-                timestamp: "2026-03-11T10:30:00.000Z"
+                code: "VALIDATION_ERROR"
+                message: "Mês deve estar entre 1 e 12"
+                traceId: "57ec3e90-a0f8-4b16-91c0-4d3f89f8b53b"
+
+        '401':
+          description: Token JWT ausente ou inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+              example:
+                code: "UNAUTHORIZED"
+                message: "Token inválido"
+                traceId: "57ec3e90-a0f8-4b16-91c0-4d3f89f8b53b"
+
+        '403':
+          description: Permissão insuficiente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+              example:
+                code: "FORBIDDEN"
+                message: "Permissão insuficiente"
+                traceId: "57ec3e90-a0f8-4b16-91c0-4d3f89f8b53b"
                 
         '500':
           description: Erro interno ao processar a Stored Procedure
@@ -225,9 +302,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/Erro'
               example:
-                erro: "Erro ao processar faturamento no banco de dados"
-                codigo: "ERRO_BANCO_DADOS"
-                timestamp: "2026-03-11T10:30:00.000Z"
+                code: "INTERNAL_ERROR"
+                message: "Erro ao processar faturamento no banco de dados"
+                traceId: "57ec3e90-a0f8-4b16-91c0-4d3f89f8b53b"
 
   # ---------------------------------------------------------------------------
   # ENDPOINT 2: Detalhes de Paciente (Conformidade LGPD - CPF Mascarado)
@@ -251,6 +328,8 @@ paths:
         
       tags:
         - Pacientes
+      security:
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -275,9 +354,31 @@ paths:
               schema:
                 $ref: '#/components/schemas/Erro'
               example:
-                erro: "Paciente com ID 999 não encontrado"
-                codigo: "PACIENTE_NAO_ENCONTRADO"
-                timestamp: "2026-03-11T10:30:00.000Z"
+                code: "NOT_FOUND"
+                message: "Paciente com ID 999 não encontrado"
+                traceId: "57ec3e90-a0f8-4b16-91c0-4d3f89f8b53b"
+
+        '401':
+          description: Token JWT ausente ou inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+              example:
+                code: "UNAUTHORIZED"
+                message: "Token inválido"
+                traceId: "57ec3e90-a0f8-4b16-91c0-4d3f89f8b53b"
+
+        '403':
+          description: Permissão insuficiente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Erro'
+              example:
+                code: "FORBIDDEN"
+                message: "Permissão insuficiente"
+                traceId: "57ec3e90-a0f8-4b16-91c0-4d3f89f8b53b"
                 
         '500':
           description: Erro interno ao buscar paciente
@@ -286,14 +387,16 @@ paths:
               schema:
                 $ref: '#/components/schemas/Erro'
               example:
-                erro: "Erro ao consultar banco de dados"
-                codigo: "ERRO_BANCO_DADOS"
-                timestamp: "2026-03-11T10:30:00.000Z"
+                code: "INTERNAL_ERROR"
+                message: "Erro ao consultar banco de dados"
+                traceId: "57ec3e90-a0f8-4b16-91c0-4d3f89f8b53b"
 
 # ============================================================================
 # TAGS (Organização da documentação)
 # ============================================================================
 tags:
+  - name: Autenticação
+    description: Emissão de token JWT para usuários admin e user
   - name: Faturamento
     description: Operações financeiras (encapsulam Stored Procedures legadas)
   - name: Pacientes

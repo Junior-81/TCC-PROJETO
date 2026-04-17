@@ -49,10 +49,12 @@ rules:
     given: "$.paths[*][get,post,put,delete,patch]"
     then:
       field: responses
-      function: truthy
+      function: schema
       functionOptions:
-        properties:
-          - "500"
+        schema:
+          type: object
+          required:
+            - "500"
 
   # ---------------------------------------------------------------------------
   # REGRA 4: Segurança - APIs devem declarar esquema de autenticação

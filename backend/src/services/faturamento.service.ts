@@ -3,7 +3,7 @@
 // Propósito: Encapsular a chamada à Procedure complexa do PostgreSQL
 // ============================================================================
 
-import pool from '../config/database';
+import { buscarResumoFaturamento } from '../repositories/faturamento.repository';
 
 // TCC Note: Interface que representa o retorno da Stored Procedure
 interface ResumoFaturamento {
@@ -34,12 +34,11 @@ export const obterResumoFaturamento = async (
   ano: number
 ): Promise<ResumoFaturamento> => {
   try {
-    // TCC Note: Chama a Stored Procedure do banco legado
-    const query = 'SELECT * FROM gerar_resumo_faturamento($1, $2)';
-    const result = await pool.query(query, [mes, ano]);
+    // TCC Note: Chama o repository para acesso ao banco legado
+    const row = await buscarResumoFaturamento(mes, ano);
 
     // TCC Note: Se não houver dados, retorna estrutura vazia
-    if (result.rows.length === 0) {
+    if (!row) {
       return {
         totalConsultas: 0,
         totalFaturado: 0,
@@ -49,8 +48,6 @@ export const obterResumoFaturamento = async (
       };
     }
 
-    const row = result.rows[0];
-
     // TCC Note: Transforma o retorno do PostgreSQL para camelCase (padrão JavaScript)
     // Isso demonstra que a camada de Plataforma adapta os dados do legado
     return {
@@ -58,7 +55,11 @@ export const obterResumoFaturamento = async (
       totalFaturado: parseFloat(row.total_faturado) || 0,
       totalRessarcido: parseFloat(row.total_ressarcido) || 0,
       totalPendente: parseFloat(row.total_pendente) || 0,
-      consultasPorConvenio: row.consultas_por_convenio || []
+      consultasPorConvenio: (row.consultas_por_convenio || []).map((item) => ({
+        convenioId: item.convenio_id,
+        quantidade: item.quantidade,
+        valorTotal: item.valor_total
+      }))
     };
   } catch (error) {
     console.error('❌ TCC: Erro ao executar Stored Procedure:', error);
