@@ -3,6 +3,10 @@ import jwt from 'jsonwebtoken';
 import { AppError } from './errorHandler';
 import { AuthTokenPayload, UserRole } from '../types/auth';
 
+if (!process.env.JWT_SECRET) {
+  console.warn('⚠️ JWT_SECRET não definido. Usando secret padrão — NÃO use em produção.');
+}
+
 const JWT_SECRET = process.env.JWT_SECRET || 'tcc-dev-secret';
 
 export const authenticateJWT = (

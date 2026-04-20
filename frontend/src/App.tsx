@@ -3,10 +3,21 @@
 // Propósito: Definir navegação e estrutura geral do Frontend
 // ============================================================================
 
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom';
 import Faturamento from './pages/Faturamento';
 import PacientePage from './pages/Paciente';
+import Login from './pages/Login';
 import './App.css';
+
+function PrivateRoute({ children }: { children: JSX.Element }) {
+  const token = localStorage.getItem('auth_token');
+
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+}
 
 function App() {
   return (
@@ -30,8 +41,9 @@ function App() {
 
         <main className="app-main">
           <Routes>
-            <Route path="/" element={<Faturamento />} />
-            <Route path="/paciente" element={<PacientePage />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/" element={<PrivateRoute><Faturamento /></PrivateRoute>} />
+            <Route path="/paciente" element={<PrivateRoute><PacientePage /></PrivateRoute>} />
           </Routes>
         </main>
 

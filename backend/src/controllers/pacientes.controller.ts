@@ -19,17 +19,8 @@ export const getPacientePorId = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    // TCC Note: Extrai e valida o ID do path parameter
-    const id = parseInt(req.params.id);
-
-    // Validação: ID deve ser um número positivo
-    if (isNaN(id) || id <= 0) {
-      throw new AppError(
-        'ID do paciente deve ser um número positivo',
-        400,
-        'PARAMETRO_INVALIDO'
-      );
-    }
+    // TCC Note: Validação já feita pelo middleware Zod
+    const id = Number(req.params.id);
 
     console.log(`🔍 TCC: Buscando paciente com ID ${id}...`);
 

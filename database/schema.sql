@@ -10,7 +10,19 @@
 -- ============================================================================
 
 -- -----------------------------------------------------------------------------
--- TABELA 1: Pacientes
+-- TABELA 1: Convênios
+-- TCC Note: Tabela de convênios com cobertura e franquia para compor faturamento.
+-- -----------------------------------------------------------------------------
+CREATE TABLE convenios (
+    id SERIAL PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    percentual_cobertura DECIMAL(5,2) NOT NULL DEFAULT 100.00,
+    valor_franquia DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- -----------------------------------------------------------------------------
+-- TABELA 2: Pacientes
 -- TCC Note: Armazena dados sensíveis (CPF) que DEVEM ser mascarados pela
 -- camada de Plataforma antes de chegarem ao Frontend (conformidade LGPD).
 -- -----------------------------------------------------------------------------
@@ -23,11 +35,12 @@ CREATE TABLE pacientes (
     email VARCHAR(255),
     endereco TEXT,
     convenio_id INTEGER, -- NULL = Particular
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (convenio_id) REFERENCES convenios(id)
 );
 
 -- -----------------------------------------------------------------------------
--- TABELA 2: Médicos
+-- TABELA 3: Médicos
 -- TCC Note: Mantém a rastreabilidade dos profissionais para auditoria.
 -- -----------------------------------------------------------------------------
 CREATE TABLE medicos (
@@ -40,7 +53,7 @@ CREATE TABLE medicos (
 );
 
 -- -----------------------------------------------------------------------------
--- TABELA 3: Consultas
+-- TABELA 4: Consultas
 -- TCC Note: Registro de cada atendimento. Esta tabela será o coração do JOIN
 -- complexo na Procedure de faturamento.
 -- -----------------------------------------------------------------------------
@@ -57,7 +70,7 @@ CREATE TABLE consultas (
 );
 
 -- -----------------------------------------------------------------------------
--- TABELA 4: Eventos_Faturamento
+-- TABELA 5: Eventos_Faturamento
 -- TCC Note: Log de eventos financeiros complexos como ressarcimento de franquia.
 -- Esta tabela demonstra a REAL complexidade de sistemas médicos legados.
 -- -----------------------------------------------------------------------------
@@ -74,6 +87,11 @@ CREATE TABLE eventos_faturamento (
 -- DADOS MOCKADOS (DML)
 -- TCC Note: Dados realistas para simular um mês de operação de uma clínica.
 -- ============================================================================
+
+-- Inserir Convênios
+INSERT INTO convenios (nome, percentual_cobertura, valor_franquia) VALUES
+('Unimed', 80.00, 300.00),
+('Bradesco Saúde', 70.00, 200.00);
 
 -- Inserir Pacientes (mix de convênio e particular)
 INSERT INTO pacientes (nome_completo, cpf, data_nascimento, telefone, email, convenio_id) VALUES
@@ -145,18 +163,36 @@ BEGIN
         GROUP BY c.id, c.valor_cobrado, c.status_pagamento, p.convenio_id
     )
     SELECT 
-        COUNT(*)::BIGINT AS total_consultas,
-        SUM(valor_cobrado)::NUMERIC AS total_faturado,
-        SUM(valor_ressarcido)::NUMERIC AS total_ressarcido,
-        SUM(CASE WHEN status_pagamento = 'pendente' THEN valor_cobrado ELSE 0 END)::NUMERIC AS total_pendente,
-        jsonb_agg(
-            jsonb_build_object(
-                'convenio_id', COALESCE(convenio_id, 0), -- 0 = Particular
-                'quantidade', COUNT(*),
-                'valor_total', SUM(valor_cobrado)
+        (SELECT COUNT(*)::BIGINT FROM faturamento_base) AS total_consultas,
+        (SELECT COALESCE(SUM(valor_cobrado), 0)::NUMERIC FROM faturamento_base) AS total_faturado,
+        (SELECT COALESCE(SUM(valor_ressarcido), 0)::NUMERIC FROM faturamento_base) AS total_ressarcido,
+        (
+            SELECT COALESCE(
+                SUM(CASE WHEN status_pagamento = 'pendente' THEN valor_cobrado ELSE 0 END),
+                0
+            )::NUMERIC
+            FROM faturamento_base
+        ) AS total_pendente,
+        (
+            SELECT COALESCE(
+                jsonb_agg(
+                    jsonb_build_object(
+                        'convenio_id', COALESCE(convenio_agg.convenio_id, 0),
+                        'quantidade', convenio_agg.quantidade,
+                        'valor_total', convenio_agg.valor_total
+                    )
+                ),
+                '[]'::jsonb
             )
-        ) AS consultas_por_convenio
-    FROM faturamento_base;
+            FROM (
+                SELECT
+                    convenio_id,
+                    COUNT(*) AS quantidade,
+                    SUM(valor_cobrado)::NUMERIC AS valor_total
+                FROM faturamento_base
+                GROUP BY convenio_id
+            ) AS convenio_agg
+        ) AS consultas_por_convenio;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -175,11 +211,13 @@ SELECT
     p.telefone,
     p.email,
     p.convenio_id,
+    cv.nome AS nome_convenio,
     COUNT(c.id) AS total_consultas,
     COALESCE(SUM(c.valor_cobrado), 0) AS total_gasto
 FROM pacientes p
+LEFT JOIN convenios cv ON p.convenio_id = cv.id
 LEFT JOIN consultas c ON p.id = c.paciente_id
-GROUP BY p.id;
+GROUP BY p.id, cv.nome;
 
 -- ============================================================================
 -- FIM DO SCRIPT

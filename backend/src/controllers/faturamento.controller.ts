@@ -19,27 +19,9 @@ export const getResumoFaturamento = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    // TCC Note: Extrai e valida os parâmetros da query string
-    const mes = parseInt(req.query.mes as string);
-    const ano = parseInt(req.query.ano as string);
-
-    // Validação: Mês deve estar entre 1 e 12
-    if (isNaN(mes) || mes < 1 || mes > 12) {
-      throw new AppError(
-        'Mês deve estar entre 1 e 12',
-        400,
-        'PARAMETRO_INVALIDO'
-      );
-    }
-
-    // Validação: Ano deve ser razoável (entre 2020 e 2030)
-    if (isNaN(ano) || ano < 2020 || ano > 2030) {
-      throw new AppError(
-        'Ano deve estar entre 2020 e 2030',
-        400,
-        'PARAMETRO_INVALIDO'
-      );
-    }
+    // TCC Note: Validação já feita pelo middleware Zod
+    const mes = Number(req.query.mes);
+    const ano = Number(req.query.ano);
 
     console.log(`📊 TCC: Gerando resumo de faturamento para ${mes}/${ano}`);
 
