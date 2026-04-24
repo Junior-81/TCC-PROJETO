@@ -1,8 +1,4 @@
 -- ============================================================================
--- TCC: Engenharia de Plataforma para Sistemas Médicos Legados
--- Autor: [Seu Nome]
--- Data: Março/2026
--- ============================================================================
 -- TESE: Este script simula um banco de dados legado onde TODA a inteligência
 -- de negócio está concentrada em Stored Procedures. A complexidade do
 -- faturamento médico (cruzamento de convênios, franquias, ressarcimento)
