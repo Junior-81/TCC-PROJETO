@@ -3,17 +3,14 @@
 // Propósito: Atuar como gateway governado entre aplicações modernas e o banco legado
 // ============================================================================
 
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import dotenv from 'dotenv';
 import { randomUUID } from 'crypto';
 import routes from './routes';
 import { errorHandler } from './middlewares/errorHandler';
 import pool, { testDatabaseConnection } from './config/database';
-
-// TCC Note: Carrega variáveis de ambiente do arquivo .env
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
